@@ -1,63 +1,35 @@
-name: Build IPA
+- name: Build unsigned IPA
+  working-directory: ${{ github.event.inputs.app_dir }}
+  run: |
+    xcodebuild -workspace ios/Liner.xcworkspace -scheme Liner -configuration Release -archivePath ios/build/Liner.xcarchive archive CODE_SIGNING_ALLOWED=NO
 
-on:
-  workflow_dispatch:
-    inputs:
-      repo:
-        description: 'Repositorio objetivo (formato owner/repo)'
-        required: true
-        default: 'DoritosSpR/liner-android'
-      ref:
-        description: 'Rama (branch)'
-        required: true
-        default: 'main'
-      app_dir:
-        description: 'Directorio dentro del repo (normalmente ".")'
-        required: true
-        default: '.'
-      ipa_name:
-        description: 'Nombre del IPA resultante'
-        required: true
-        default: 'liner-unsigned'
+- name: Create Export Options plist
+  working-directory: ${{ github.event.inputs.app_dir }}
+  run: |
+    cat > ios/ExportOptions.plist << 'EOF'
+    <?xml version="1.0" encoding="UTF-8"?>
+    <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+    <plist version="1.0">
+    <dict>
+      <key>method</key>
+      <string>development</string>
+      <key>signingStyle</key>
+      <string>automatic</string>
+      <key>signingCertificate</key>
+      <string></string>
+      <key>compileBitcode</key>
+      <false/>
+    </dict>
+    </plist>
+    EOF
 
-jobs:
-  build:
-    runs-on: macos-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-        with:
-          repository: ${{ github.event.inputs.repo }}
-          ref: ${{ github.event.inputs.ref }}
+- name: Export IPA
+  working-directory: ${{ github.event.inputs.app_dir }}
+  run: |
+    xcodebuild -exportArchive -archivePath ios/build/Liner.xcarchive -exportPath ios/build -exportOptionsPlist ios/ExportOptions.plist
 
-      - name: Install Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-
-      - name: Install dependencies
-        working-directory: ${{ github.event.inputs.app_dir }}
-        run: npm install --legacy-peer-deps --force
-
-      - name: Expo prebuild
-        working-directory: ${{ github.event.inputs.app_dir }}
-        run: npx expo prebuild --platform ios --non-interactive
-
-      - name: Install CocoaPods
-        working-directory: ${{ github.event.inputs.app_dir }}/ios
-        run: pod install
-
-      - name: Build unsigned IPA
-        working-directory: ${{ github.event.inputs.app_dir }}
-        run: |
-          CODE_SIGNING_ALLOWED=NO xcodebuild \
-            -workspace ios/Liner.xcworkspace \
-            -scheme Liner \
-            -configuration Release \
-            CODE_SIGNING_ALLOWED=NO
-
-      - name: Upload IPA artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ github.event.inputs.ipa_name }}
-          path: ios/build/Products/Release-iphoneos/Liner.ipa
+- name: Upload IPA artifact
+  uses: actions/upload-artifact@v4
+  with:
+    name: ${{ github.event.inputs.ipa_name }}
+    path: ios/build/Liner.ipa
