@@ -50,7 +50,8 @@ jobs:
       - name: Build unsigned IPA archive
         working-directory: ${{ github.event.inputs.app_dir }}
         run: |
-          xcodebuild -workspace ios/Liner.xcworkspace -scheme Liner -configuration Release -archivePath ios/build/Liner.xcarchive archive CODE_SIGNING_ALLOWED=NO
+          set -x
+          xcodebuild -workspace ios/Liner.xcworkspace -scheme Liner -configuration Release -archivePath ios/build/Liner.xcarchive archive CODE_SIGNING_ALLOWED=NO > ios/build/archive.log 2>&1
 
       - name: Create export options plist
         working-directory: ${{ github.event.inputs.app_dir }}
@@ -75,10 +76,20 @@ jobs:
       - name: Export unsigned IPA
         working-directory: ${{ github.event.inputs.app_dir }}
         run: |
-          xcodebuild -exportArchive -archivePath ios/build/Liner.xcarchive -exportPath ios/build -exportOptionsPlist ios/ExportOptions.plist
+          set -x
+          xcodebuild -exportArchive -archivePath ios/build/Liner.xcarchive -exportPath ios/build -exportOptionsPlist ios/ExportOptions.plist > ios/build/export.log 2>&1
 
       - name: Upload IPA artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.event.inputs.ipa_name }}
           path: ios/build/Liner.ipa
+
+      - name: Upload build logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: |
+            ios/build/archive.log
+            ios/build/export.log
