@@ -41,18 +41,18 @@ jobs:
 
       - name: Expo prebuild
         working-directory: ${{ github.event.inputs.app_dir }}
-        run: npx expo prebuild --platform ios
+        run: npx expo prebuild --platform ios --non-interactive
 
       - name: Install CocoaPods
-        working-directory: ${{ github.event.inputs.app_dir }}
-        run: npx pod-install
+        working-directory: ${{ github.event.inputs.app_dir }}/ios
+        run: pod install
 
       - name: Build unsigned IPA
         working-directory: ${{ github.event.inputs.app_dir }}
         run: |
-          CODE_SIGNING_ALLOWED=NO npx xcodebuild \
-            -workspace ios/${{ github.event.inputs.app_dir }}.xcworkspace \
-            -scheme ${{ github.event.inputs.app_dir }} \
+          CODE_SIGNING_ALLOWED=NO xcodebuild \
+            -workspace ios/Liner.xcworkspace \
+            -scheme Liner \
             -configuration Release \
             CODE_SIGNING_ALLOWED=NO
 
@@ -60,4 +60,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ${{ github.event.inputs.ipa_name }}
-          path: ${{ github.event.inputs.app_dir }}/ios/build/Products/Release-iphoneos/${{ github.event.inputs.app_dir }}.ipa
+          path: ios/build/Products/Release-iphoneos/Liner.ipa
